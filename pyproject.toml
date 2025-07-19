@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "zoektpy"
+version = "0.1.0"
+description = "Python client library for Zoekt code search"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {file = "LICENSE"}
+authors = [
+    {name = "Udbhav Agarwal", email = "udbhav44@gmail.com"},
+]
+dependencies = [
+    "requests>=2.32.3",
+    "click>=8.1.8",
+    "pydantic>=2.11.7",
+    "rich>=13.9.4",
+    "aiohttp>=3.10.11",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=6.0.0",
+    "black>=21.5b2",
+    "mypy>=0.812",
+    "isort>=5.8.0",
+    "flake8>=3.9.1",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/udbhav-44/zoekt-py"
+"Bug Tracker" = "https://github.com/udbhav-44/zoekt-py/issues"
+
+[project.scripts]
+zoekt = "zoektpy.cli:main"

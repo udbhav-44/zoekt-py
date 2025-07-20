@@ -7,7 +7,7 @@ from datetime import datetime
 from enum import IntEnum
 from typing import Any, Dict, List, Optional, Union
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class ListOptionsField(IntEnum):
@@ -27,16 +27,17 @@ class Range(BaseModel):
 
 
 class SymbolInfo(BaseModel):
-    Kind: str
+    Kind: Optional[str] = None
     Parent: Optional[str] = None
     ParentKind: Optional[str] = None
+    Scope: Optional[str] = None
 
 
 class LineMatch(BaseModel):
     LineNumber: int
     Line: str
-    Before: Optional[List[str]] = None
-    After: Optional[List[str]] = None
+    Before: Optional[List[str]] = []
+    After: Optional[List[str]] = []
     FileName: bool = False
     
     def get_decoded_line(self) -> str:
@@ -61,7 +62,7 @@ class ChunkMatch(BaseModel):
     Content: str
     ContentStart: Position
     Ranges: List[Range]
-    SymbolInfo: Optional[str] = None
+    SymbolInfo: Optional["SymbolInfo"] = None
     FileName: bool = False
     Score: float
     DebugScore: Optional[str] = None
@@ -79,39 +80,41 @@ class FileMatch(BaseModel):
     Version: str
     Language: Optional[str] = None
     Branches: List[str]
-    LineMatches: Optional[List[LineMatch]] = None
-    ChunkMatches: Optional[List[ChunkMatch]] = None
+    LineMatches: Optional[List[LineMatch]] = []
+    ChunkMatches: Optional[List[ChunkMatch]] = []
     Checksum: str
     Score: float
     Debug: Optional[str] = None
 
 
 class SearchResult(BaseModel):
-    Files: List[FileMatch]
-    RepoURLs: Dict[str, str]
-    LineFragments: Dict[str, str]
-    
+    Files: List["FileMatch"] = []
+    RepoURLs: Dict[str, str] = Field(default_factory=dict)
+    LineFragments: Dict[str, str] = Field(default_factory=dict)
+
     # Stats fields
-    ContentBytesLoaded: int
-    IndexBytesLoaded: int
-    Crashes: int
-    Duration: int
-    FileCount: int
-    ShardFilesConsidered: int
-    FilesConsidered: int
-    FilesLoaded: int
-    FilesSkipped: int
-    ShardsScanned: int
-    ShardsSkipped: int
-    ShardsSkippedFilter: int
-    MatchCount: int
-    NgramMatches: int
-    NgramLookups: int
-    Wait: int
-    MatchTreeConstruction: int
-    MatchTreeSearch: int
-    RegexpsConsidered: int
-    FlushReason: int
+    ContentBytesLoaded: int = 0
+    IndexBytesLoaded: int = 0 
+    Crashes: int =  0
+    Duration: int = 0
+    FileCount: int = 0
+    ShardFilesConsidered: int = 0
+    FilesConsidered: int = 0 
+    FilesLoaded: int = 0
+    FilesSkipped: int = 0
+    ShardsScanned: int = 0
+    ShardsSkipped: int = 0
+    ShardsSkippedFilter: int = 0
+    MatchCount: int = 0
+    NgramMatches: int = 0
+    NgramLookups: int = 0
+    Wait: int = 0
+    MatchTreeConstruction: int = 0
+    MatchTreeSearch: int = 0
+    RegexpsConsidered: int = 0
+    FlushReason: int = 0
+    
+ 
 
 
 class RepositoryMetadata(BaseModel):

@@ -1,5 +1,5 @@
 """
-Custom exceptions for the Zoekt client library
+Exceptions for the Zoekt client library
 """
 
 class ZoektError(Exception):

@@ -104,13 +104,19 @@ class ZoektClient:
         
         # Convert SearchOptions object to dict if needed
         if isinstance(options, SearchOptions):
-            options = options.dict(exclude_none=True)
+            options = options.model_dump(exclude_none=True)
+        else:
+            options = options or {}
+        
+        # Ensure ChunkMatches is True by default
+        if "ChunkMatches" not in options:
+            options["ChunkMatches"] = True
         
         # Prepare request payload
         payload: Dict[str, Any] = {"Q": query}
         if repo_ids is not None:
             payload["RepoIDs"] = repo_ids
-        if options is not None:
+        if options:
             payload["Opts"] = normalize_search_options(options)
         
         # Perform request with retries
@@ -123,7 +129,13 @@ class ZoektClient:
                     headers=self.headers,
                     timeout=self.timeout,
                 )
-                response.raise_for_status()
+                if not response.ok:
+                    try:
+                        message = response.json().get("Error", response.text)
+                    except ValueError:
+                        message = response.text or "Unknown error"
+                    raise ZoektAPIError(status_code=response.status_code, message=message)
+                
                 data = response.json()
                 
                 # Zoekt returns the result in a "Result" field
@@ -131,7 +143,7 @@ class ZoektClient:
                 
                 # Parse and validate the response
                 try:
-                    return SearchResult.parse_obj(result_data)
+                    return SearchResult.model_validate(result_data)
                 except ValidationError as e:
                     raise ZoektParseError(f"Failed to parse search response: {e}")
                 
@@ -145,9 +157,10 @@ class ZoektClient:
             
             except requests.exceptions.HTTPError as e:
                 if attempt == max_retries - 1:
-                    status_code = e.response.status_code if e.response else 0
-                    message = str(e)
-                    raise ZoektAPIError(status_code, message)
+                    raise ZoektAPIError(
+                        status_code=e.response.status_code if e.response else 0,
+                        message=e.response.json().get("Error", str(e)) if e.response else str(e)
+                    )
             
             # Backoff before retrying
             time.sleep(retry_backoff * (2 ** attempt))
@@ -180,7 +193,7 @@ class ZoektClient:
         
         # Convert ListOptions object to dict if needed
         if isinstance(options, ListOptions):
-            options = options.dict(exclude_none=True)
+            options = options.model_dump(exclude_none=True)
         
         # Prepare request payload
         payload: Dict[str, Any] = {"Q": query}
@@ -203,7 +216,7 @@ class ZoektClient:
             
             # Parse and validate the response
             try:
-                return RepositoryList.parse_obj(list_data)
+                return RepositoryList.model_validate(list_data)
             except ValidationError as e:
                 raise ZoektParseError(f"Failed to parse repository list response: {e}")
             
@@ -372,7 +385,7 @@ class ZoektClient:
         """
         options = kwargs.get("options", {})
         if isinstance(options, SearchOptions):
-            options = options.dict(exclude_none=True)
+            options = options.model_dump(exclude_none=True)
         
         options["NumContextLines"] = context_lines
         kwargs["options"] = options
@@ -476,13 +489,19 @@ class AsyncZoektClient:
         
         # Convert SearchOptions object to dict if needed
         if isinstance(options, SearchOptions):
-            options = options.dict(exclude_none=True)
+            options = options.model_dump(exclude_none=True)
+        else:
+            options = options or {}
+        
+        # Ensure ChunkMatches is True by default
+        if "ChunkMatches" not in options:
+            options["ChunkMatches"] = True
         
         # Prepare request payload
         payload: Dict[str, Any] = {"Q": query}
         if repo_ids is not None:
             payload["RepoIDs"] = repo_ids
-        if options is not None:
+        if options:
             payload["Opts"] = normalize_search_options(options)
         
         # Perform request with retries
@@ -502,7 +521,7 @@ class AsyncZoektClient:
                     
                     # Parse and validate the response
                     try:
-                        return SearchResult.parse_obj(result_data)
+                        return SearchResult.model_validate(result_data)
                     except ValidationError as e:
                         raise ZoektParseError(f"Failed to parse search response: {e}")
             
@@ -549,7 +568,7 @@ class AsyncZoektClient:
         
         # Convert ListOptions object to dict if needed
         if isinstance(options, ListOptions):
-            options = options.dict(exclude_none=True)
+            options = options.model_dump(exclude_none=True)
         
         # Prepare request payload
         payload: Dict[str, Any] = {"Q": query}
@@ -571,7 +590,7 @@ class AsyncZoektClient:
                 
                 # Parse and validate the response
                 try:
-                    return RepositoryList.parse_obj(list_data)
+                    return RepositoryList.model_validate(list_data)
                 except ValidationError as e:
                     raise ZoektParseError(f"Failed to parse repository list response: {e}")
             
@@ -583,7 +602,187 @@ class AsyncZoektClient:
         
         except aiohttp.ClientResponseError as e:
             raise ZoektAPIError(e.status, str(e))
+
+    async def search_by_language(
+        self,
+        query: str,
+        language: str,
+        **kwargs
+    ) -> SearchResult:
+        """
+        Search for code in a specific language asynchronously
+        
+        Args:
+            query: Search query text
+            language: Programming language to search
+            **kwargs: Additional arguments to pass to search()
+        
+        Returns:
+            SearchResult object
+        """
+        components = parse_query_components(query)
+        
+        # Add or replace the language component
+        if "lang" in components:
+            components["lang"] = [language]
+        else:
+            components["lang"] = [language]
+        
+        full_query = build_query(components)
+        return await self.search(full_query, **kwargs)
     
-    # Add specialized search methods (similar to the sync client)
-    # You can implement these by following the pattern of the synchronous client
-    # but making them async
+    async def search_by_file_pattern(
+        self,
+        query: str,
+        file_pattern: str,
+        **kwargs
+    ) -> SearchResult:
+        """
+        Search for code matching files with the given pattern asynchronously
+        
+        Args:
+            query: Search query text
+            file_pattern: File pattern (e.g., "*.py")
+            **kwargs: Additional arguments to pass to search()
+        
+        Returns:
+            SearchResult object
+        """
+        components = parse_query_components(query)
+        
+        # Add or append to the file component
+        if "file" in components:
+            components["file"].append(file_pattern)
+        else:
+            components["file"] = [file_pattern]
+        
+        full_query = build_query(components)
+        return await self.search(full_query, **kwargs)
+    
+    async def search_by_repo(
+        self,
+        query: str,
+        repo_pattern: str,
+        **kwargs
+    ) -> SearchResult:
+        """
+        Search for code in repositories matching the given pattern asynchronously
+        
+        Args:
+            query: Search query text
+            repo_pattern: Repository pattern (e.g., "myorg/*")
+            **kwargs: Additional arguments to pass to search()
+        
+        Returns:
+            SearchResult object
+        """
+        components = parse_query_components(query)
+        
+        # Add or append to the repo component
+        if "repo" in components:
+            components["repo"].append(repo_pattern)
+        else:
+            components["repo"] = [repo_pattern]
+        
+        full_query = build_query(components)
+        return await self.search(full_query, **kwargs)
+    
+    async def search_case_sensitive(
+        self,
+        query: str,
+        **kwargs
+    ) -> SearchResult:
+        """
+        Perform a case-sensitive search asynchronously
+        
+        Args:
+            query: Search query text
+            **kwargs: Additional arguments to pass to search()
+        
+        Returns:
+            SearchResult object
+        """
+        components = parse_query_components(query)
+        
+        # Set case sensitivity
+        components["case"] = ["yes"]
+        
+        full_query = build_query(components)
+        return await self.search(full_query, **kwargs)
+    
+    async def search_symbols(
+        self,
+        query: str,
+        symbol_type: Optional[str] = None,
+        **kwargs
+    ) -> SearchResult:
+        """
+        Search for symbols matching the query asynchronously
+        
+        Args:
+            query: Search query text
+            symbol_type: Optional symbol type filter
+            **kwargs: Additional arguments to pass to search()
+        
+        Returns:
+            SearchResult object
+        """
+        components = parse_query_components(query)
+        
+        # Add symbol search modifier
+        if symbol_type:
+            components["sym"] = [symbol_type]
+        else:
+            components["sym"] = [""]
+        
+        full_query = build_query(components)
+        return await self.search(full_query, **kwargs)
+    
+    async def search_with_context(
+        self,
+        query: str,
+        context_lines: int = 5,
+        **kwargs
+    ) -> SearchResult:
+        """
+        Search with additional context lines asynchronously
+        
+        Args:
+            query: Search query text
+            context_lines: Number of context lines to include
+            **kwargs: Additional arguments to pass to search()
+        
+        Returns:
+            SearchResult object
+        """
+        options = kwargs.get("options", {})
+        if isinstance(options, SearchOptions):
+            options = options.model_dump(exclude_none=True)
+        
+        options["NumContextLines"] = context_lines
+        kwargs["options"] = options
+        
+        return await self.search(query, **kwargs)
+    
+    async def search_batch(
+        self,
+        queries: List[str],
+        **kwargs
+    ) -> Dict[str, SearchResult]:
+        """
+        Perform multiple searches in batch asynchronously
+        
+        Args:
+            queries: List of search queries
+            **kwargs: Additional arguments to pass to search()
+        
+        Returns:
+            Dictionary mapping queries to their SearchResult
+        """
+        tasks = []
+        for query in queries:
+            task = self.search(query, **kwargs)
+            tasks.append(task)
+        
+        results = await asyncio.gather(*tasks)
+        return dict(zip(queries, results))

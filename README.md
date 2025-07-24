@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/udbhav-44/zoekt-py/main/assets/logo.png" alt="ZoektPy Logo" height="120">
+  <img src="https://raw.githubusercontent.com/udbhav-44/zoekt-py/main/assets/logo.png" alt="ZoektPy Logo" width="400"/>
 </p>
 
 # ZoektPy

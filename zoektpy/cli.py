@@ -24,11 +24,13 @@ error_console = Console(stderr=True)  # For stderr
 @click.option("--port", default=6070, help="Zoekt server port")
 @click.option("--timeout", default=10.0, help="Request timeout in seconds")
 @click.option("--debug/--no-debug", default=False, help="Enable debug output")
+@click.option("--theme", default="ansi_light", help="Syntax highlighting theme (Pygments styles, e.g., 'monokai', 'vim'; 'ansi_light' by default)")
 @click.pass_context
-def cli(ctx, host, port, timeout, debug):
+def cli(ctx, host, port, timeout, debug, theme):
     """ZoektPy - Python client for Zoekt code search"""
     ctx.ensure_object(dict)
     ctx.obj["client"] = ZoektClient(host=host, port=port, timeout=timeout)
+    ctx.obj["theme"] = theme
     if debug:
         import logging
         logging.basicConfig(level=logging.DEBUG)
@@ -47,7 +49,8 @@ def cli(ctx, host, port, timeout, debug):
 def search(ctx, query, context, max_matches, output_json, language, file, repo, case_sensitive):
     """Search code using Zoekt"""
     client = ctx.obj["client"]
-    
+    theme = ctx.obj["theme"]
+
     # Build query with filters
     query_parts = [query]
     if language:
@@ -97,8 +100,8 @@ def search(ctx, query, context, max_matches, output_json, language, file, repo, 
             if file_match.ChunkMatches:
                 for chunk in file_match.ChunkMatches:
                     content = chunk.get_decoded_content()
-                    syntax = Syntax(content, file_match.Language or "text", line_numbers=True, 
-                                    start_line=chunk.ContentStart.LineNumber)
+                    syntax = Syntax(content, file_match.Language or "text", line_numbers=True,
+                                    start_line=chunk.ContentStart.LineNumber, theme=theme)
                     console.print(syntax)
                     
                     for range_ in chunk.Ranges:

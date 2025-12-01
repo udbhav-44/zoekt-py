@@ -20,10 +20,10 @@ console = Console()
 error_console = Console(stderr=True)  # For stderr
 
 @click.group()
-@click.option("--host", default="localhost", help="Zoekt server hostname")
-@click.option("--port", default=6070, help="Zoekt server port")
-@click.option("--timeout", default=10.0, help="Request timeout in seconds")
-@click.option("--debug/--no-debug", default=False, help="Enable debug output")
+@click.option("--host", default="localhost", help="Zoekt server hostname (Default: localhost)")
+@click.option("--port", default=6070, help="Zoekt server port (Default: 6070)")
+@click.option("--timeout", default=10.0, help="Request timeout in seconds (Default: 10s)")
+@click.option("--debug/--no-debug", default=False, help="Enable debug output (Default: False)")
 @click.option("--theme", default="ansi_light", help="Syntax highlighting theme (Pygments styles, e.g., 'monokai', 'vim'; 'ansi_light' by default)")
 @click.pass_context
 def cli(ctx, host, port, timeout, debug, theme):
@@ -38,13 +38,13 @@ def cli(ctx, host, port, timeout, debug, theme):
 
 @cli.command()
 @click.argument("query")
-@click.option("--context", "-c", default=3, help="Number of context lines")
-@click.option("--max-matches", "-m", default=20, help="Maximum number of matches to display")
+@click.option("--context", "-c", default=3, help="Number of context lines (default: 3)")
+@click.option("--max-matches", "-m", default=20, help="Maximum number of matches to display (default: 20)")
 @click.option("--json", "output_json", is_flag=True, help="Output raw JSON")
 @click.option("--language", "-l", help="Filter by language")
 @click.option("--file", "-f", help="Filter by file pattern")
 @click.option("--repo", "-r", help="Filter by repository")
-@click.option("--case-sensitive", is_flag=True, help="Enable case sensitivity")
+@click.option("--case-sensitive", is_flag=True, help="Enable case sensitivity (default: False")
 @click.pass_context
 def search(ctx, query, context, max_matches, output_json, language, file, repo, case_sensitive):
     """Search code using Zoekt"""

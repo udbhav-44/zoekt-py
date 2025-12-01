@@ -113,7 +113,7 @@ def search(ctx, query, context, max_matches, output_json, language, file, repo, 
 
             # File header
             console.print(Panel(
-                f"[bold blue]{file_match.Repository}/[/bold blue][bold cyan]{file_match.FileName}[/bold cyan]",
+                f"[bold blue]{repotext}[/bold blue] [bold cyan]{filetext}[/bold cyan]",
                 subtitle=f"Language: {file_match.Language or 'unknown'} | Score: {file_match.Score:.2f}"
             ))
             

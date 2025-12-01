@@ -14,6 +14,7 @@ from rich.panel import Panel
 
 from .client import ZoektClient
 from .models import SearchOptions, ListOptions, ListOptionsField
+from .utils import evaluate_file_url_template, evaluate_repo_url_template
 
 
 console = Console()
@@ -25,12 +26,14 @@ error_console = Console(stderr=True)  # For stderr
 @click.option("--timeout", default=10.0, help="Request timeout in seconds (Default: 10s)")
 @click.option("--debug/--no-debug", default=False, help="Enable debug output (Default: False)")
 @click.option("--theme", default="ansi_light", help="Syntax highlighting theme (Pygments styles, e.g., 'monokai', 'vim'; 'ansi_light' by default)")
+@click.option('--links/--no-links', default=True, help="Enable or disable clickable links in output (default: True)")
 @click.pass_context
-def cli(ctx, host, port, timeout, debug, theme):
+def cli(ctx, host, port, timeout, debug, theme, links):
     """ZoektPy - Python client for Zoekt code search"""
     ctx.ensure_object(dict)
     ctx.obj["client"] = ZoektClient(host=host, port=port, timeout=timeout)
     ctx.obj["theme"] = theme
+    ctx.obj["links"] = links
     if debug:
         import logging
         logging.basicConfig(level=logging.DEBUG)
@@ -50,6 +53,7 @@ def search(ctx, query, context, max_matches, output_json, language, file, repo, 
     """Search code using Zoekt"""
     client = ctx.obj["client"]
     theme = ctx.obj["theme"]
+    embed_links = ctx.obj["links"]
 
     # Build query with filters
     query_parts = [query]
@@ -89,7 +93,24 @@ def search(ctx, query, context, max_matches, output_json, language, file, repo, 
         for i, file_match in enumerate(result.Files):
             if i > 0:
                 console.print()
-            
+
+            repo = file_match.Repository
+            fileurl = evaluate_file_url_template(result.RepoURLs[repo], file_match.Version, file_match.FileName, None, None)
+            if file_match.ChunkMatches:
+                first_chunk = file_match.ChunkMatches[0]
+                fileurl = evaluate_file_url_template(result.RepoURLs[repo], file_match.Version, file_match.FileName,
+                    result.LineFragments[repo], first_chunk.BestLineMatch)
+
+            repourl = evaluate_repo_url_template(result.RepoURLs[repo])
+
+            filetext = file_match.FileName
+            if fileurl and embed_links:
+                filetext = f"[link={fileurl}]{file_match.FileName}[/link]"
+
+            repotext = repo
+            if repourl and embed_links:
+                repotext = f"[link={repourl}]{repo}[/link]"
+
             # File header
             console.print(Panel(
                 f"[bold blue]{file_match.Repository}/[/bold blue][bold cyan]{file_match.FileName}[/bold cyan]",

@@ -13,6 +13,8 @@ DURATION_NS_FIELDS = {"MaxWallTime", "FlushWallTime"}
 # Regex pattern to match URLJoinPath templates
 URL_JOIN_PATH_TEMPLATE = re.compile(r"^{{\s*URLJoinPath\s+(?P<args>.*?)\s*}}$")
 
+TAB_CHARS = '\t'
+
 def normalize_search_options(opts: Dict[str, Any]) -> Dict[str, Any]:
     """
     Convert any duration fields (float seconds) into nanosecond ints.
@@ -164,3 +166,17 @@ def evaluate_repo_url_template(template: str) -> str:
         args = match.group("args")
         url = args.split()[0]
     return url
+
+def adjust_character_offset(line_text: str, source_offset: int, tab_size: int = 4) -> int:
+    """
+    Adjusts offset from start of text to account for tab character expansion
+
+    :param line_text: The full text of the line.
+    :param source_offset: The 0-based character index of the start of the match.
+    :param tab_size: The number of spaces a tab expands to (Rich's default is 4).
+    :return: The 0-based column index in the rendered tab-expanded form.
+    """
+
+    tab_chars_len = tab_size - len(TAB_CHARS)
+
+    return source_offset + tab_chars_len * line_text.count(TAB_CHARS, 0, source_offset)

@@ -11,10 +11,11 @@ from rich.console import Console
 from rich.syntax import Syntax
 from rich.table import Table
 from rich.panel import Panel
+from rich.style import Style
 
 from .client import ZoektClient
 from .models import SearchOptions, ListOptions, ListOptionsField
-from .utils import evaluate_file_url_template, evaluate_repo_url_template
+from .utils import evaluate_file_url_template, evaluate_repo_url_template, adjust_character_offset
 
 
 console = Console()
@@ -48,12 +49,15 @@ def cli(ctx, host, port, timeout, debug, theme, links):
 @click.option("--file", "-f", help="Filter by file pattern")
 @click.option("--repo", "-r", help="Filter by repository")
 @click.option("--case-sensitive", is_flag=True, help="Enable case sensitivity (default: False")
+@click.option("--highlight-matches/--no-highlight-matches", default=True, is_flag=True, help="Enable search match highlighting (if disabled, will print a log of matches instead; default: enabled)")
 @click.pass_context
-def search(ctx, query, context, max_matches, output_json, language, file, repo, case_sensitive):
+def search(ctx, query, context, max_matches, output_json, language, file, repo, case_sensitive, highlight_matches):
     """Search code using Zoekt"""
     client = ctx.obj["client"]
     theme = ctx.obj["theme"]
     embed_links = ctx.obj["links"]
+
+    match_style = Style(bgcolor="bright_black")
 
     # Build query with filters
     query_parts = [query]
@@ -121,17 +125,37 @@ def search(ctx, query, context, max_matches, output_json, language, file, repo, 
             if file_match.ChunkMatches:
                 for chunk in file_match.ChunkMatches:
                     content = chunk.get_decoded_content()
+                    tab_size = 4
                     syntax = Syntax(content, file_match.Language or "text", line_numbers=True,
-                                    start_line=chunk.ContentStart.LineNumber, theme=theme)
+                                    start_line=chunk.ContentStart.LineNumber, theme=theme, tab_size=tab_size)
+
+                    if highlight_matches:
+                        code_lines = content.splitlines()
+                        for range_ in chunk.Ranges:
+                            start_line = range_.Start.LineNumber - chunk.ContentStart.LineNumber
+                            end_line = range_.End.LineNumber - chunk.ContentStart.LineNumber
+
+                            start_line_str = code_lines[start_line]
+                            start_char = range_.Start.Column - 1
+                            start_char = adjust_character_offset(start_line_str, start_char, tab_size)
+
+                            end_line_str = code_lines[end_line]
+                            end_char = range_.End.Column - 1
+                            end_char = adjust_character_offset(end_line_str, end_char, tab_size)
+
+                            syntax.stylize_range(match_style,
+                                (start_line + 1, start_char), (end_line + 1, end_char))
+
                     console.print(syntax)
-                    
-                    for range_ in chunk.Ranges:
-                        line_num = range_.Start.LineNumber
-                        console.print(f"[bold green]Match at line {line_num}, "
-                                    f"column {range_.Start.Column} to "
-                                    f"line {range_.End.LineNumber}, "
-                                    f"column {range_.End.Column}[/bold green]")
-            
+
+                    if not highlight_matches:
+                        for range_ in chunk.Ranges:
+                            line_num = range_.Start.LineNumber
+                            console.print(f"[bold green]Match at line {line_num}, "
+                                        f"column {range_.Start.Column} to "
+                                        f"line {range_.End.LineNumber}, "
+                                        f"column {range_.End.Column}[/bold green]")
+
             # Display line matches
             if file_match.LineMatches:
                 for line_match in file_match.LineMatches:

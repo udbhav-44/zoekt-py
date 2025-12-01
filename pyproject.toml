@@ -35,3 +35,6 @@ dev = [
 
 [project.scripts]
 zoekt = "zoektpy.cli:main"
+
+[tool.setuptools.packages.find]
+exclude = ["assets/*"]

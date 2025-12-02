@@ -138,6 +138,9 @@ class RepositoryStats(BaseModel):
     DefaultBranchNewLinesCount: int
     OtherBranchesNewLinesCount: int
 
+class Branch(BaseModel):
+    Name: str
+    Version: str
 
 class Repository(BaseModel):
     TenantID: int
@@ -146,12 +149,12 @@ class Repository(BaseModel):
     URL: str
     Metadata: Optional[Dict[str, Any]] = None
     Source: str
-    Branches: List[str]
-    SubRepoMap: Dict[str, str]
+    Branches: List[Branch]
+    SubRepoMap: Optional[Dict[str, 'Repository']]
     CommitURLTemplate: str
     FileURLTemplate: str
     LineFragmentTemplate: str
-    RawConfig: Optional[str] = None
+    RawConfig: Optional[Dict[str, Any]] = None
     Rank: float
     IndexOptions: str
     HasSymbols: bool

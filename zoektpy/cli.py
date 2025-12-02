@@ -213,10 +213,12 @@ def search(ctx, query, context, max_matches, output_json, language, file, repo, 
 @click.option("--json", "output_json", is_flag=True, help="Output raw JSON")
 @click.option("--minimal", is_flag=True, help="Use minimal output format")
 @click.pass_context
-def list(ctx, query, output_json):
+def list(ctx, query, output_json, minimal):
     """List repositories matching a query"""
     client = ctx.obj["client"]
-    
+
+    console = Console()
+
     # Set up list options
     field = ListOptionsField.FULL
     options = ListOptions(Field=field)

@@ -35,7 +35,7 @@ dev = [
 "Bug Tracker" = "https://github.com/udbhav-44/zoekt-py/issues"
 
 [project.scripts]
-zoekt = "zoektpy.cli:main"
+zoekt-py = "zoektpy.cli:main"
 
 [tool.setuptools.packages.find]
 exclude = ["assets/*"]

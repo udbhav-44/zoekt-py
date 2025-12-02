@@ -106,19 +106,26 @@ def search(ctx, query, context, max_matches, output_json, language, file, repo, 
                 console.print()
 
             repo = file_match.Repository
-            fileurl = evaluate_file_url_template(result.RepoURLs[repo], file_match.Version, file_match.FileName, None, None)
-            if file_match.ChunkMatches:
-                first_chunk = file_match.ChunkMatches[0]
-                fileurl = evaluate_file_url_template(result.RepoURLs[repo], file_match.Version, file_match.FileName,
-                    result.LineFragments[repo], first_chunk.BestLineMatch)
-
-            repourl = evaluate_repo_url_template(result.RepoURLs[repo])
-
-            filetext = file_match.FileName
-            if fileurl and embed_links:
-                filetext = f"[link={fileurl}]{file_match.FileName}[/link]"
 
             repotext = repo
+            filetext = file_match.FileName
+
+            fileurl = evaluate_file_url_template(result.RepoURLs[repo], file_match.Version, file_match.FileName, None, None)
+
+            if file_match.ChunkMatches:
+                first_chunk = file_match.ChunkMatches[0]
+                firstMatchLine = first_chunk.BestLineMatch
+
+                fileurl = evaluate_file_url_template(result.RepoURLs[repo], file_match.Version, file_match.FileName,
+                    result.LineFragments[repo], firstMatchLine)
+
+                if firstMatchLine:
+                    filetext = f"{file_match.FileName}:{firstMatchLine}"
+
+            if fileurl and embed_links:
+                filetext = f"[link={fileurl}]{filetext}[/link]"
+
+            repourl = evaluate_repo_url_template(result.RepoURLs[repo])
             if repourl and embed_links:
                 repotext = f"[link={repourl}]{repo}[/link]"
 

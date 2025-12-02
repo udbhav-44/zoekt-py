@@ -26,14 +26,16 @@ error_console = Console(stderr=True)  # For stderr
 @click.option("--port", default=6070, help="Zoekt server port (Default: 6070)")
 @click.option("--timeout", default=10.0, help="Request timeout in seconds (Default: 10s)")
 @click.option("--debug/--no-debug", default=False, help="Enable debug output (Default: False)")
+@click.option("--color/--no-color", default=False, help="Force color output (Default: False)")
 @click.option("--theme", default="ansi_light", help="Syntax highlighting theme (Pygments styles, e.g., 'monokai', 'vim'; 'ansi_light' by default)")
 @click.option('--links/--no-links', default=True, help="Enable or disable clickable links in output (default: True)")
 @click.pass_context
-def cli(ctx, host, port, timeout, debug, theme, links):
+def cli(ctx, host, port, timeout, debug, theme, color, links):
     """ZoektPy - Python client for Zoekt code search"""
     ctx.ensure_object(dict)
     ctx.obj["client"] = ZoektClient(host=host, port=port, timeout=timeout)
     ctx.obj["theme"] = theme
+    ctx.obj["color"] = color
     ctx.obj["links"] = links
     if debug:
         import logging
@@ -58,6 +60,11 @@ def search(ctx, query, context, max_matches, output_json, language, file, repo, 
     embed_links = ctx.obj["links"]
 
     match_style = Style(bgcolor="bright_black")
+
+    color = ctx.obj["color"]
+    if (color):
+        global console
+        console = Console(force_terminal=True)
 
     # Build query with filters
     query_parts = [query]

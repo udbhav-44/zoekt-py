@@ -1,0 +1,47 @@
+name: Create GitHub Release from Changelog
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  github-release:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write   # REQUIRED to create releases
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          TAG=${GITHUB_REF#refs/tags/v}
+          echo "version=$TAG" >> $GITHUB_OUTPUT
+
+      - name: Extract changelog section
+        id: changelog
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+
+          awk "/^## \\[$VERSION\\]/,/^## \\[/" CHANGELOG.md \
+            | sed '1d;$d' > release_notes.txt
+
+          if [ ! -s release_notes.txt ]; then
+            echo "❌ No changelog entry found for version $VERSION"
+            exit 1
+          fi
+
+          echo "notes<<EOF" >> $GITHUB_OUTPUT
+          cat release_notes.txt >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: Release v${{ steps.version.outputs.version }}
+          body: ${{ steps.changelog.outputs.notes }}

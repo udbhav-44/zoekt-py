@@ -8,7 +8,7 @@ version = "0.1.1"
 description = "Python client library for Zoekt code search"
 readme = "README.md"
 requires-python = ">=3.10"
-license = {file = "LICENSE"}
+license-files = ["LICENSE"]
 authors = [
     {name = "Udbhav Agarwal", email = "udbhav44@gmail.com"},
 ]
@@ -27,6 +27,7 @@ dev = [
     "mypy>=0.812",
     "isort>=5.8.0",
     "flake8>=3.9.1",
+    "responses>=0.25.8"
 ]
 
 [project.urls]
@@ -34,4 +35,7 @@ dev = [
 "Bug Tracker" = "https://github.com/udbhav-44/zoekt-py/issues"
 
 [project.scripts]
-zoekt = "zoektpy.cli:main"
+zoekt-py = "zoektpy.cli:main"
+
+[tool.setuptools.packages.find]
+exclude = ["assets/*"]

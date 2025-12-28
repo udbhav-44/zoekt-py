@@ -8,7 +8,7 @@ and this project adheres to Semantic Versioning.
 ## [0.2.0] - 2025-12-28
 ### Added
 
-## Unreleased
+## Released
 
 ### Fixed
 - Fixed setup error caused by multiple entry points by excluding `assets/`.  

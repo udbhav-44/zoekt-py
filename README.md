@@ -209,6 +209,12 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 
 ---
 
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for a full list of changes.
+ 
+---
+
 
 <p align="center">
   <em>Made with ❤️ by Udbhav Agarwal</em>
